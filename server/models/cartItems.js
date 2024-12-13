@@ -28,7 +28,8 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: false,
             validate: {
-                min: 1 // Quantity must be greater than 0
+                min: 1, // Quantity must be greater than 0
+                isInt: true
             }
         },
         price: {

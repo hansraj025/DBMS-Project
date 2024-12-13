@@ -21,6 +21,9 @@ const authenticationToken = require('./middlewares/auth');
 const userRouter = require('./routes/Users');
 app.use('/users', userRouter);
 
+const adminRouter = require('./routes/Admin');
+app.use('/admin', adminRouter);
+
 const bookRouter = require('./routes/Books');
 app.use('/books', bookRouter);
 

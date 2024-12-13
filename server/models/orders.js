@@ -53,7 +53,7 @@ module.exports = (sequelize, DataTypes) => {
 
         // Sum up the `amount` field of all associated OrderDetails
         order.totalAmount = orderDetails.reduce((total, detail) => total + parseFloat(detail.amount), 0);
+        
     });
-
     return Orders;
 };

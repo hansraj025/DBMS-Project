@@ -5,38 +5,47 @@ const { Op } = require('sequelize');
 
 
 
-// TODO - Show all orders for users
-router.get('/showOrders', async (req, res) => {
-    const userID = req.user.userID;
-    
-    // 1. get all orders
-    const orders = await Orders.findAll({
-        where: {
-            userID: userID
-        }
-    })
 
-    // 2. get all details for each order
-    const ordersWithOrderDetails = await Promise.all(orders.map(async (order) => {
-        const orderDetails = await OrderDetails.findAll({
-            where: {
-                orderID: order.orderID
-            },
-            include: [{model: Books}]
+router.get('/showOrders', async (req, res) => {
+    userID = req.user.userID;
+
+    try {
+        // Fetch all Orders for the user
+        const orders = await Orders.findAll({
+            where: { userID },
+            include: [{
+                model: OrderDetails,
+                include: [{
+                    model:Books,
+                    attributes: ['bookID', 'bookTitle', 'bookPrice']
+                }]
+            }]
         })
 
-        return {
-            ...order.toJSON(),
-            orderDetails: orderDetails
-        };
+        // Tranform the data to match the desired output format
+        const transformedOrders = orders.map(order => ({
+            orderID: order.orderID,
+            userID: order.userID,
+            totalAmount: order.totalAmount,
+            orderStatus: order.orderStatus,
+            orderDetails: order.OrderDetails.map(detail => ({
+                orderDetailID: detail.orderDetailID,
+                quantity: detail.quantity,
+                amount: detail.amount,
+                Book: detail.Book
+            }))
+        }));
 
-    }));
-    
-    res.json({
-        message: 'Orders retrieved successfully.',
-        orders: ordersWithOrderDetails
-    })
-
+        res.json({
+            transformedOrders
+        });
+    } catch (error) {
+        console.error('Error fetching orders.', error)
+        res.status(500).json({
+            message: 'Error fetching orders.',
+            error: error.message
+        })
+    }
 })
 
 // TODO - Order Cart i.e. cartItems under cart -> orderDetails under order
@@ -66,7 +75,21 @@ router.post('/ordercart', async (req, res) => {
         })
 
         // 4. Add order details to the order
-        const orderDetails = await Promise.all(cartItems.map(async (cartItem) => {
+        const orderDetails = await Promise.all(cartItems.map(async (cartItem) => {            
+            await Books.decrement('stock', {
+                by: cartItem.quantity,
+                where: {
+                    bookID: cartItem.bookID
+                }
+            })
+
+            await Orders.increment('totalAmount', {
+                by: cartItem.price,
+                where: {
+                    orderID: newOrder.orderID
+                }
+            })
+
             return await OrderDetails.create({
                 orderID: newOrder.orderID,
                 bookID: cartItem.bookID,
