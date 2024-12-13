@@ -4,6 +4,7 @@ const router = express.Router();        // For routes*
 const { Users } = require('../models');
 const jwt = require('jsonwebtoken');
 const Op = require('sequelize');
+const authenticateToken = require('../middlewares/auth');
 
 
 // for localhost:3001/users
@@ -125,6 +126,68 @@ router.post('/login', async (req, res) => {
         })
     }
 })
+
+
+router.get('/getprofile', authenticateToken, async (req, res) => {
+    const userID = req.user.userID;
+
+    if (!userID) {
+        return res.status(401).json({ message: 'Token not available.' });
+    }
+
+    try {
+        const userData = await Users.findOne({
+            where: { userID },
+            attributes: { exclude: ['password'] } // Exclude the password field
+        });
+
+        if (!userData) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        res.json(userData);
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        res.status(500).json({ message: 'Error fetching user profile.', error: error.message });
+    }
+});
+
+
+// Update Profile
+router.post('/updateprofile', authenticateToken, async (req, res) => {
+    const userID = req.user.userID;
+    const {email, userType, phone, address, firstName, lastName } = req.body;
+
+    if (!userID) {
+        return res.status(400).json({ message: 'User ID is required.' });
+    }
+
+    try {
+        const user = await Users.findOne({ where: { userID } });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        // Update only fields that are provided in the request
+        const updatedFields = {};
+
+        if (phone !== undefined) updatedFields.phone = phone;
+        if (address !== undefined) updatedFields.address = address;
+        if (firstName !== undefined) updatedFields.firstName = firstName;
+        if (lastName !== undefined) updatedFields.lastName = lastName;
+
+        await user.update(updatedFields);
+
+        res.json({
+            message: 'Profile updated successfully.',
+            user
+        });
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        res.status(500).json({ message: 'Error updating profile.', error: error.message });
+    }
+});
 
 
 module.exports = router;

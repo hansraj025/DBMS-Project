@@ -68,6 +68,13 @@ router.post('/ordercart', async (req, res) => {
             }
         })
 
+        // 2.1 Do not allow order if cart empty
+        if (!cartItems || cartItems.length === 0) {
+            return res.status(400).json({
+                message: 'No items in the cart. Order cannot be created.'
+            })
+        }
+
         // 3. Create A Order
         newOrder = await Orders.create({
             userID: userID,

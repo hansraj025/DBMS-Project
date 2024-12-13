@@ -25,12 +25,8 @@ router.post('/additem', async (req, res) => {
             });
         }
 
-        // Note: Capitalization matters - use book.price, not book.Price
-        const price = quantity * book.price;
-
-        // Uncomment authenticateToken when ready
         const userID = req.user ? req.user.userID : null;
-        
+
         if (!userID) {
             return res.status(401).json({
                 message: 'User not authenticated.'
@@ -47,6 +43,27 @@ router.post('/additem', async (req, res) => {
             });
         }
 
+        const existingCartItem = await CartItems.findOne({
+            where: {
+                cartID: cart.cartID,
+                bookID: bookID
+            }
+        });
+
+        if (existingCartItem) {
+            // If the item already exists in the cart, increase its quantity
+            existingCartItem.quantity += quantity;
+            existingCartItem.price += quantity * book.price;
+            await existingCartItem.save();
+
+            return res.status(200).json({
+                message: "Cart item quantity updated successfully.",
+                cartItem: existingCartItem
+            });
+        }
+
+        // If the item does not exist, create a new cart item
+        const price = quantity * book.price;
         const cartItem = await CartItems.create({
             cartID: cart.cartID,
             bookID,
