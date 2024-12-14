@@ -125,7 +125,7 @@ router.post('/login', async (req, res) => {
             message: 'Server error during login'
         })
     }
-})
+});
 
 
 router.get('/getprofile', authenticateToken, async (req, res) => {

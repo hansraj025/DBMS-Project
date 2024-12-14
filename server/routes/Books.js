@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
         res.json(transformedBooks);
     } catch (error) {
         // Error handling
-        console.error('Error fetching books:', error);
+        console.error('Error fetching paginated books:', error);
         res.status(500).json({ 
             error: "An error occurred while retrieving books", 
             details: error.message 

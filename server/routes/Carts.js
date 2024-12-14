@@ -73,7 +73,7 @@ router.post('/additem', async (req, res) => {
 
         res.status(201).json({
             message: "Item added to cart successfully.",
-            cartItem
+            cartItem: cartItem
         });
 
     } catch (error) {
@@ -133,24 +133,50 @@ router.post('/removeitem', async (req, res) => {
 router.get('/getitems', async (req, res) => {
     const userID = req.user.userID;
 
-    const cart = await Carts.findOne({
-        where: {
-            userID: userID
+    try {
+        // Fetch the cart for the user
+        const cart = await Carts.findOne({
+            where: {
+                userID: userID
+            }
+        });
+
+        // If the user does not have a cart
+        if (!cart) {
+            return res.status(404).json({ message: 'Cart not found' });
         }
-    })
 
-    const cartID = cart.cartID;
+        const cartID = cart.cartID;
 
-    const usersCartItems = await CartItems.findAll({
-        where: {
-            cartID: cartID
-        }
-    })
+        // Fetch cart items along with associated book details
+        const usersCartItems = await CartItems.findAll({
+            where: {
+                cartID: cartID
+            },
+            include: [
+                {
+                    model: Books, // Assuming Books is your model name for books
+                    attributes: ['bookID', 'bookTitle', 'bookPrice', 'bookGenre', 'rating', 'stock'], // Adjust as needed
+                }
+            ]
+        });
 
-    res.json({
-        message: 'Fetched cart Items for user',
-        usersCartItems
-    })
+        // Transform the result to include the desired structure
+        const transformedItems = usersCartItems.map(item => ({
+            cartItemID: item.cartItemID,
+            quantity: item.quantity,
+            bookID: item.bookID,
+            bookTitle: item.Book.bookTitle, // Extract bookTitle from the associated Book model
+            price: item.price
+        }));
+
+        // Return the transformed cart items
+        res.json(transformedItems);
+    } catch (error) {
+        console.error('Error fetching cart items:', error);
+        res.status(500).json({ message: 'An error occurred while retrieving cart items', details: error.message });
+    }
 });
+
 
 module.exports = router;
